@@ -1,0 +1,72 @@
+package com.zybooks.inventoryapp_stevennave;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+
+public class MainActivity extends AppCompatActivity {
+
+    // UI components
+    private EditText usernameEditText, passwordEditText;
+    private Button loginButton, createAccountButton;
+
+    // Database helper
+    private DatabaseHelper databaseHelper;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main); // your login XML
+
+        // Initialize database helper
+        databaseHelper = new DatabaseHelper(this);
+
+        // Connect UI elements
+        usernameEditText = findViewById(R.id.username);
+        passwordEditText = findViewById(R.id.password);
+        loginButton = findViewById(R.id.loginButton);
+        createAccountButton = findViewById(R.id.createAccountButton);
+
+        // Login action
+        loginButton.setOnClickListener(v -> {
+            String username = usernameEditText.getText().toString().trim();
+            String password = passwordEditText.getText().toString().trim();
+
+            if (username.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Enter both username and password", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (databaseHelper.checkUser(username, password)) {
+                Toast.makeText(this, "Login Successful", Toast.LENGTH_SHORT).show();
+                // Open inventory screen
+                Intent intent = new Intent(MainActivity.this, InventoryActivity.class);
+                startActivity(intent);
+            } else {
+                Toast.makeText(this, "Invalid Credentials", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // Create account action
+        createAccountButton.setOnClickListener(v -> {
+            String username = usernameEditText.getText().toString().trim();
+            String password = passwordEditText.getText().toString().trim();
+
+            if (username.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Enter both username and password", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            boolean created = databaseHelper.insertUser(username, password);
+            if (created) {
+                Toast.makeText(this, "Account Created", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Username already exists", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+}

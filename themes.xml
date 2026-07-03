@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/rowItemName"
+        android:layout_width="0dp"
+        android:layout_weight="2"
+        android:layout_height="wrap_content"
+        android:text="Item"
+        android:textColor="#000"/>
+
+    <TextView
+        android:id="@+id/rowItemQty"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:text="Qty"
+        android:textColor="#000"/>
+
+    <TextView
+        android:id="@+id/rowItemDate"
+        android:layout_width="0dp"
+        android:layout_weight="2"
+        android:layout_height="wrap_content"
+        android:text="Date"
+        android:textColor="#000"/>
+
+    <Button
+        android:id="@+id/rowDeleteButton"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:text="X"
+        android:backgroundTint="#F44336"
+        android:textColor="#FFF"/>
+    <Button
+        android:id="@+id/decreaseButton"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:text="-" />
+
+    <Button
+        android:id="@+id/increaseButton"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:text="+" />
+</LinearLayout>

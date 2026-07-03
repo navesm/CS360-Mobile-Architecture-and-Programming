@@ -1,0 +1,165 @@
+package com.zybooks.inventoryapp_stevennave;
+
+import android.os.Bundle;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.telephony.SmsManager;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.util.ArrayList;
+
+public class InventoryActivity extends AppCompatActivity {
+
+    private RecyclerView recyclerView;
+    private InventoryAdapter adapter;
+    private ArrayList<InventoryItem> itemList;
+    private DatabaseHelper dbHelper;
+
+    private static final int SMS_PERMISSION_CODE = 101;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_inventory);
+
+        Button logoutButton = findViewById(R.id.logoutButton);
+
+        logoutButton.setOnClickListener(v -> {
+            finish(); // closes InventoryActivity and returns to login
+        });
+
+        recyclerView = findViewById(R.id.inventoryGrid);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        dbHelper = new DatabaseHelper(this);
+
+        itemList = dbHelper.getAllItems();
+        adapter = new InventoryAdapter(itemList, this, dbHelper);
+        recyclerView.setAdapter(adapter);
+
+        FloatingActionButton addButton = findViewById(R.id.addItemButton);
+        addButton.setOnClickListener(v -> showBottomSheet());
+
+        requestSmsPermission();
+    }
+
+
+    private void showBottomSheet() {
+
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        dialog.setContentView(R.layout.bottom_sheet_add_edit);
+
+        EditText nameInput = dialog.findViewById(R.id.itemNameInput);
+        EditText qtyInput = dialog.findViewById(R.id.itemQuantityInput);
+        EditText dateInput = dialog.findViewById(R.id.itemDateAddedInput);
+
+        Button saveButton = dialog.findViewById(R.id.saveItemButton);
+        Button cancelButton = dialog.findViewById(R.id.cancelItemButton);
+
+        saveButton.setOnClickListener(v -> {
+
+            String name = nameInput.getText().toString().trim();
+            String qtyStr = qtyInput.getText().toString().trim();
+            String date = dateInput.getText().toString().trim();
+
+            if (name.isEmpty() || qtyStr.isEmpty() || date.isEmpty()) {
+                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int qty = Integer.parseInt(qtyStr);
+
+            dbHelper.insertItem(name, qty, date);
+
+            if (qty == 0) {
+                sendInventoryAlert(name, "OUT OF STOCK");
+            }
+            else if (qty < 5) {
+                sendInventoryAlert(name, "LOW INVENTORY");
+            }
+
+            // Refresh RecyclerView
+            itemList.clear();
+            itemList.addAll(dbHelper.getAllItems());
+            adapter.notifyDataSetChanged();
+
+            dialog.dismiss();
+        });
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void requestSmsPermission() {
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.SEND_SMS},
+                    SMS_PERMISSION_CODE
+            );
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == SMS_PERMISSION_CODE) {
+            if (grantResults.length > 0 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                Toast.makeText(this, "SMS Permission Granted", Toast.LENGTH_SHORT).show();
+
+            } else {
+                Toast.makeText(this,
+                        "SMS Permission Denied. Alerts disabled.",
+                        Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    public void sendInventoryAlert(String itemName, String alertType) {
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS)
+                == PackageManager.PERMISSION_GRANTED) {
+
+            String phoneNumber = "5554"; // Emulator test number
+
+            String message;
+
+            if (alertType.equals("OUT OF STOCK")) {
+                message = "ALERT: " + itemName + " is OUT OF STOCK.";
+            } else {
+                message = "Warning: " + itemName + " is LOW on inventory.";
+            }
+
+            SmsManager smsManager = SmsManager.getDefault();
+            smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+
+            Toast.makeText(this, "SMS Alert Sent: " + message, Toast.LENGTH_LONG).show();
+
+        } else {
+            // Permission denied — app continues normally
+            Toast.makeText(this,
+                    "SMS permission denied. Alert not sent.",
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+}

@@ -1,0 +1,110 @@
+package com.zybooks.inventoryapp_stevennave;
+
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.ArrayList;
+
+public class InventoryAdapter extends RecyclerView.Adapter<InventoryAdapter.InventoryViewHolder> {
+
+    private ArrayList<InventoryItem> items;
+    private Context context;
+    private DatabaseHelper dbHelper;
+
+    public InventoryAdapter(ArrayList<InventoryItem> items, Context context, DatabaseHelper dbHelper) {
+        this.items = items;
+        this.context = context;
+        this.dbHelper = dbHelper;
+    }
+
+    @NonNull
+    @Override
+    public InventoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(context).inflate(R.layout.item_inventory_row, parent, false);
+        return new InventoryViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull InventoryViewHolder holder, int position) {
+
+        InventoryItem item = items.get(position);
+
+        holder.itemName.setText(item.getName());
+        holder.itemQty.setText(String.valueOf(item.getQuantity()));
+        holder.itemDate.setText(item.getDateAdded());
+
+        // DELETE
+        holder.deleteButton.setOnClickListener(v -> {
+            int currentPosition = holder.getAdapterPosition();
+            if (currentPosition != RecyclerView.NO_POSITION) {
+                dbHelper.deleteItem(item.getId());
+                items.remove(currentPosition);
+                notifyItemRemoved(currentPosition);
+            }
+        });
+
+        // INCREASE
+        holder.increaseButton.setOnClickListener(v -> {
+            int newQty = item.getQuantity() + 1;
+            item.setQuantity(newQty);
+
+            dbHelper.updateItemQuantity(item.getId(), newQty);
+            holder.itemQty.setText(String.valueOf(newQty));
+        });
+
+        // DECREASE
+        holder.decreaseButton.setOnClickListener(v -> {
+
+            int currentQty = item.getQuantity();
+
+            if (currentQty > 0) {
+                int newQty = currentQty - 1;
+                item.setQuantity(newQty);
+
+                dbHelper.updateItemQuantity(item.getId(), newQty);
+                holder.itemQty.setText(String.valueOf(newQty));
+
+                // Trigger SMS alerts
+                if (context instanceof InventoryActivity) {
+                    InventoryActivity activity = (InventoryActivity) context;
+
+                    if (newQty == 0) {
+                        activity.sendInventoryAlert(item.getName(), "OUT OF STOCK");
+                    } else if (newQty < 5) {
+                        activity.sendInventoryAlert(item.getName(), "LOW INVENTORY");
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public int getItemCount() {
+        return items.size();
+    }
+
+    static class InventoryViewHolder extends RecyclerView.ViewHolder {
+
+        TextView itemName, itemQty, itemDate;
+        Button deleteButton, increaseButton, decreaseButton;
+
+        public InventoryViewHolder(@NonNull View itemView) {
+            super(itemView);
+
+            itemName = itemView.findViewById(R.id.rowItemName);
+            itemQty = itemView.findViewById(R.id.rowItemQty);
+            itemDate = itemView.findViewById(R.id.rowItemDate);
+
+            deleteButton = itemView.findViewById(R.id.rowDeleteButton);
+            increaseButton = itemView.findViewById(R.id.increaseButton);
+            decreaseButton = itemView.findViewById(R.id.decreaseButton);
+        }
+    }
+}
